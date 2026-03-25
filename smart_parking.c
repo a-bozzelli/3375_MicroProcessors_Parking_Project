@@ -13,23 +13,20 @@
  *   HEX4–HEX5   → Unused (blanked)
  */
 
-/* ========================================================================
- *  1. HARDWARE ADDRESS DEFINITIONS
- * ======================================================================== */
 
 /* Push buttons */
-volatile int *KEY_BASE      = (volatile int *)0xFF200050;  /* Data register    */
-volatile int *KEY_EDGE      = (volatile int *)0xFF20005C;  /* Edge capture reg */
+volatile int *KEY_BASE = (volatile int *)0xFF200050;  /* Data register    */
+volatile int *KEY_EDGE = (volatile int *)0xFF20005C;  /* Edge capture reg */
 
 /* Slider switches */
-volatile int *SW_BASE       = (volatile int *)0xFF200040;
+volatile int *SW_BASE = (volatile int *)0xFF200040;
 
 /* Red LEDs */
-volatile int *LEDR_BASE     = (volatile int *)0xFF200000;
+volatile int *LEDR_BASE = (volatile int *)0xFF200000;
 
 /* 7-Segment displays */
-volatile int *HEX_BASE_03   = (volatile int *)0xFF200020;  /* HEX3–HEX0 */
-volatile int *HEX_BASE_45   = (volatile int *)0xFF200030;  /* HEX5–HEX4 */
+volatile int *HEX_BASE_03 = (volatile int *)0xFF200020;  /* HEX3–HEX0 */
+volatile int *HEX_BASE_45 = (volatile int *)0xFF200030;  /* HEX5–HEX4 */
 
 /* ARM A9 Private Timer (for debounce timing) */
 volatile int *TIMER_LOAD    = (volatile int *)0xFFFEC600;
@@ -37,9 +34,6 @@ volatile int *TIMER_VALUE   = (volatile int *)0xFFFEC604;
 volatile int *TIMER_CONTROL = (volatile int *)0xFFFEC608;
 volatile int *TIMER_STATUS  = (volatile int *)0xFFFEC60C;
 
-/* ========================================================================
- *  2. GLOBAL VARIABLES
- * ======================================================================== */
 
 volatile int occupied_count = 0;    /* Current number of parked cars       */
 int total_capacity          = 0;    /* Read from SW[7:0], range 0–255      */
@@ -48,10 +42,6 @@ int system_enabled          = 0;    /* Read from SW[9]                     */
 int is_full                 = 0;    /* True when available_count == 0      */
 volatile int key0_pressed   = 0;    /* Edge-detected flag for park button  */
 volatile int key1_pressed   = 0;    /* Edge-detected flag for leave button */
-
-/* ========================================================================
- *  3. 7-SEGMENT LOOKUP TABLE
- * ======================================================================== */
 
 /*
  * Segment encoding (active-low on DE10-Standard):
@@ -70,16 +60,16 @@ volatile int key1_pressed   = 0;    /* Edge-detected flag for leave button */
  * 0 = segment ON, 1 = segment OFF (active low)
  */
 const unsigned char seven_seg_table[10] = {
-    0x3F, /* 0 → segments: 0,1,2,3,4,5     */
-    0x06, /* 1 → segments: 1,2             */
-    0x5B, /* 2 → segments: 0,1,3,4,6       */
-    0x4F, /* 3 → segments: 0,1,2,3,6       */
-    0x66, /* 4 → segments: 1,2,5,6         */
-    0x6D, /* 5 → segments: 0,2,3,5,6       */
-    0x7D, /* 6 → segments: 0,2,3,4,5,6     */
-    0x07, /* 7 → segments: 0,1,2           */
-    0x7F, /* 8 → segments: 0,1,2,3,4,5,6   */
-    0x6F  /* 9 → segments: 0,1,2,3,5,6     */
+    0x3F, // 0 
+    0x06, // 1 
+    0x5B, // 2 
+    0x4F, // 3 
+    0x66, // 4 
+    0x6D, // 5 
+    0x7D, // 6 
+    0x07, // 7 
+    0x7F, // 8 
+    0x6F  // 9 
 };
 
 /* "F" character for FULL indicator: segments 0,4,5,6 */
@@ -88,12 +78,8 @@ const unsigned char CHAR_F = 0x71;
 /* Blank display (all segments off) */
 const unsigned char BLANK  = 0x00;
 
-/* ========================================================================
- *  4. INITIALIZATION FUNCTIONS
- * ======================================================================== */
 
 /*
- * init_buttons()
  * Clears the edge capture register so no stale button presses are detected.
  */
 void init_buttons(void) {
@@ -101,7 +87,6 @@ void init_buttons(void) {
 }
 
 /*
- * init_leds()
  * Turns off all 10 red LEDs.
  */
 void init_leds(void) {
@@ -109,7 +94,6 @@ void init_leds(void) {
 }
 
 /*
- * init_seven_seg()
  * Blanks all six 7-segment displays.
  */
 void init_seven_seg(void) {
@@ -118,9 +102,8 @@ void init_seven_seg(void) {
 }
 
 /*
- * init_timer()
- * Configures the ARM A9 private timer for debounce delays.
- * Timer clock = 200 MHz (PERIPHCLK on DE10-Standard).
+ * ARM A9 private timer for debounce delays.
+ * Timer clock = 200 MHz
  * We load a value for ~50 ms: 200,000,000 / 20 = 10,000,000 ticks.
  * Timer is configured but NOT started — used on-demand for delays.
  */
@@ -131,7 +114,6 @@ void init_timer(void) {
 }
 
 /*
- * system_init()
  * Master initialization — calls all init functions, resets state.
  */
 void system_init(void) {
@@ -149,10 +131,6 @@ void system_init(void) {
     key1_pressed = 0;
 }
 
-/* ========================================================================
- *  5. INPUT FUNCTIONS
- * ======================================================================== */
-
 /*
  * read_capacity()
  * Reads SW[7:0] for total capacity (0–255).
@@ -165,8 +143,7 @@ void read_switches(void) {
 }
 
 /*
- * delay_debounce()
- * Uses the ARM A9 private timer to wait ~50 ms for debouncing.
+ * sets private timer to wait ~50 ms for debouncing.
  * Blocking delay — starts timer, waits for it to expire.
  */
 void delay_debounce(void) {
@@ -184,7 +161,6 @@ void delay_debounce(void) {
 }
 
 /*
- * poll_buttons()
  * Reads the edge capture register for KEY0 and KEY1.
  * Sets key0_pressed / key1_pressed flags.
  * Clears the edge capture bits after reading.
@@ -213,17 +189,11 @@ void poll_buttons(void) {
     }
 }
 
-/* ========================================================================
- *  6. OUTPUT FUNCTIONS
- * ======================================================================== */
-
 /*
- * update_leds()
  * Maps the occupied count to the 10 red LEDs.
  * - If occupied >= 10: all 10 LEDs on (0x3FF)
  * - If occupied < 10:  lowest N LEDs on
  *
- * Example: occupied = 3 → LEDR = 0b0000000111
  */
 void update_leds(int occupied) {
     int led_val;
@@ -240,7 +210,6 @@ void update_leds(int occupied) {
 }
 
 /*
- * update_seven_seg()
  * Displays the available count on HEX0 (ones), HEX1 (tens), HEX2 (hundreds).
  * Displays "F" on HEX3 if garage is full, otherwise blank.
  * Blanks HEX4 and HEX5 (unused).
@@ -281,12 +250,7 @@ void update_seven_seg(int available, int full) {
     *(HEX_BASE_45) = 0x00000000;
 }
 
-/* ========================================================================
- *  7. CORE LOGIC FUNCTIONS
- * ======================================================================== */
-
 /*
- * park_car()
  * Attempts to park one car.
  * Increments occupied_count if garage is not full.
  */
@@ -298,7 +262,6 @@ void park_car(void) {
 }
 
 /*
- * free_spot()
  * Attempts to free one spot.
  * Decrements occupied_count if garage is not empty.
  */
@@ -310,7 +273,6 @@ void free_spot(void) {
 }
 
 /*
- * clear_all_outputs()
  * Turns off all LEDs and blanks all 7-segment displays.
  * Called when system is disabled.
  */
@@ -320,16 +282,11 @@ void clear_all_outputs(void) {
     *(HEX_BASE_45)  = 0x00000000;
 }
 
-/* ========================================================================
- *  8. MAIN LOOP
- * ======================================================================== */
-
 int main(void) {
 
-    /* ---- Initialize everything ---- */
+    /* Initialize everything */
     system_init();
 
-    /* ---- Main loop: runs forever ---- */
     while (1) {
 
         /* Step 1: Read switches (capacity + on/off) */
@@ -337,13 +294,13 @@ int main(void) {
 
         /* Step 2: Check if system is enabled */
         if (!system_enabled) {
-            /*
-             * SYSTEM OFF state:
-             * - Clear all outputs
-             * - Reset occupied count
-             * - Clear any pending button edges
-             * - Loop back and wait for SW[9] to turn on
-             */
+            // 
+            // SYSTEM OFF state:
+            // - Clear all outputs
+            // - Reset occupied count
+            // - Clear any pending button edges
+            // - Loop back and wait for SW[9] to turn on
+            // 
             occupied_count = 0;
             clear_all_outputs();
             *(KEY_EDGE) = 0xF;   /* Clear stale edges */
