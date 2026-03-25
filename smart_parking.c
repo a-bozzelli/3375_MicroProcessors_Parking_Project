@@ -1,7 +1,4 @@
 /*
- * Smart Parking Garage System
- * DE10-Standard (ARM Cortex-A9 HPS)
- *
  * I/O Mapping:
  *   KEY0        → Park a car (increment occupied)
  *   KEY1        → Free a spot (decrement occupied)
