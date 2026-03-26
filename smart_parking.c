@@ -35,7 +35,6 @@ volatile int *TIMER_STATUS  = (volatile int *)0xFFFEC60C;
 volatile int occupied_count = 0;    /* Current number of parked cars       */
 int total_capacity          = 0;    /* Read from SW[7:0], range 0–255      */
 int available_count         = 0;    /* Computed: total_capacity - occupied  */
-int system_enabled          = 0;    /* Read from SW[9]                     */
 int is_full                 = 0;    /* True when available_count == 0      */
 volatile int key0_pressed   = 0;    /* Edge-detected flag for park button  */
 volatile int key1_pressed   = 0;    /* Edge-detected flag for leave button */
@@ -122,7 +121,6 @@ void system_init(void) {
     occupied_count = 0;
     total_capacity = 0;
     available_count = 0;
-    system_enabled = 0;
     is_full = 0;
     key0_pressed = 0;
     key1_pressed = 0;
@@ -136,7 +134,6 @@ void system_init(void) {
 void read_switches(void) {
     int sw_val = *(SW_BASE);
     total_capacity = sw_val & 0xFF;          /* SW[7:0] = capacity     */
-    system_enabled = (sw_val >> 9) & 0x1;    /* SW[9]   = on/off       */
 }
 
 /*
@@ -289,44 +286,30 @@ int main(void) {
         /* Step 1: Read switches (capacity + on/off) */
         read_switches();
 
-        /* Step 2: Check if system is enabled */
-        if (!system_enabled) {
-            // 
-            // SYSTEM OFF state:
-            // - Clear all outputs
-            // - Reset occupied count
-            // - Clear any pending button edges
-            // - Loop back and wait for SW[9] to turn on
-            // 
-            occupied_count = 0;
-            clear_all_outputs();
-            *(KEY_EDGE) = 0xF;   /* Clear stale edges */
-            continue;
-        }
 
-        /* Step 3: Clamp occupied_count if capacity was reduced */
+        /* Step 2: Clamp occupied_count if capacity was reduced */
         if (occupied_count > total_capacity) {
             occupied_count = total_capacity;
         }
 
-        /* Step 4: Poll buttons for park/leave events */
+        /* Step 3: Poll buttons for park/leave events */
         poll_buttons();
 
-        /* Step 5: Process park event (KEY0) */
+        /* Step 4: Process park event (KEY0) */
         if (key0_pressed) {
             park_car();
         }
 
-        /* Step 6: Process leave event (KEY1) */
+        /* Step 5: Process leave event (KEY1) */
         if (key1_pressed) {
             free_spot();
         }
 
-        /* Step 7: Compute available count and full status */
+        /* Step 6: Compute available count and full status */
         available_count = total_capacity - occupied_count;
         is_full = (available_count == 0) ? 1 : 0;
 
-        /* Step 8: Update all outputs */
+        /* Step 7: Update all outputs */
         update_leds(occupied_count);
         update_seven_seg(available_count, is_full);
     }
