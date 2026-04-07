@@ -1,16 +1,3 @@
-/*
- * I/O Mapping:
- *   KEY0        → Park a car (increment occupied)
- *   KEY1        → Free a spot (decrement occupied)
- *   SW[7:0]     → Total capacity (0–255)
- *   SW[9]       → System on/off
- *   LEDR[9:0]   → First 10 spot indicators (on = occupied)
- *   HEX0–HEX2   → Available spots (3-digit decimal)
- *   HEX3         → "F" when garage is full
- *   HEX4–HEX5   → Unused (blanked)
- */
-
-
 /* Push buttons */
 volatile int *KEY_BASE = (volatile int *)0xFF200050;  /* Data register    */
 volatile int *KEY_EDGE = (volatile int *)0xFF20005C;  /* Edge capture reg */
@@ -39,22 +26,6 @@ int is_full                 = 0;    /* True when available_count == 0      */
 volatile int key0_pressed   = 0;    /* Edge-detected flag for park button  */
 volatile int key1_pressed   = 0;    /* Edge-detected flag for leave button */
 
-/*
- * Segment encoding (active-low on DE10-Standard):
- *
- *     --0--
- *    |     |
- *    5     1
- *    |     |
- *     --6--
- *    |     |
- *    4     2
- *    |     |
- *     --3--
- *
- * Each entry: bits [6:0] map to segments 6..0
- * 0 = segment ON, 1 = segment OFF (active low)
- */
 const unsigned char seven_seg_table[10] = {
     0x3F, // 0 
     0x06, // 1 
@@ -73,7 +44,6 @@ const unsigned char CHAR_F = 0x71;
 
 /* Blank display (all segments off) */
 const unsigned char BLANK  = 0x00;
-
 
 /*
  * Clears the edge capture register so no stale button presses are detected.
@@ -97,12 +67,7 @@ void init_seven_seg(void) {
     *(HEX_BASE_45) = 0x00000000;
 }
 
-/*
- * ARM A9 private timer for debounce delays.
- * Timer clock = 200 MHz
- * We load a value for ~50 ms: 200,000,000 / 20 = 10,000,000 ticks.
- * Timer is configured but NOT started — used on-demand for delays.
- */
+// We load a value for ~50 ms: 200,000,000 / 20 = 10,000,000 ticks.
 void init_timer(void) {
     *(TIMER_CONTROL) = 0x0;            /* Stop timer            */
     *(TIMER_LOAD)    = 10000000;       /* ~50 ms at 200 MHz     */
@@ -187,7 +152,6 @@ void poll_buttons(void) {
  * Maps the occupied count to the 10 red LEDs.
  * - If occupied >= 10: all 10 LEDs on (0x3FF)
  * - If occupied < 10:  lowest N LEDs on
- *
  */
 void update_leds(int occupied) {
     int led_val;
@@ -221,13 +185,6 @@ void update_seven_seg(int available, int full) {
     tens     = (available / 10) % 10;
     hundreds = (available / 100) % 10;
 
-    /*
-     * HEX_BASE_03 register layout (32 bits):
-     *   [31:24] = HEX3
-     *   [23:16] = HEX2
-     *   [15:8]  = HEX1
-     *   [7:0]   = HEX0
-     */
     hex03_val = (seven_seg_table[ones])            /* HEX0: ones     */
               | (seven_seg_table[tens]     << 8)   /* HEX1: tens     */
               | (seven_seg_table[hundreds] << 16); /* HEX2: hundreds */
